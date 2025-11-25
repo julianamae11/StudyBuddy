@@ -4,7 +4,7 @@ import datetime
 import tempfile
 from mysql.connector import Error
 from authlib.integrations.flask_client import OAuth
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session, flash
 from werkzeug.utils import secure_filename
 from flask import request, redirect, url_for, flash
 from datetime import date
@@ -31,9 +31,6 @@ GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "GOCSPX-Bncm03fdID
 app = Flask(__name__)
 # IMPORTANT: Session secret key required for Flask sessions (used by OAuth)
 app.secret_key = os.environ.get("SECRET_KEY", '!SuperSecretKeyForSession!') 
-
-# Simple placeholder for tracking logged-in user (USE FLASK SESSIONS IN PRODUCTION!)
-LOGGED_IN_USER_ID = None 
 
 UPLOAD_FOLDER = os.path.join('/tmp', 'uploads')
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx'}
@@ -76,8 +73,21 @@ class study_buddyDB:
                 del config_copy['passwd']
 
             # Handle SSL if provided in environment (Common for cloud databases like Aiven/Azure)
-            if os.environ.get("DB_SSL_CA"):
-                config_copy['ssl_ca'] = os.environ.get("DB_SSL_CA")
+            ssl_ca = os.environ.get("DB_SSL_CA")
+            if ssl_ca:
+                # Check if it's a file path and resolve it
+                if not os.path.isabs(ssl_ca):
+                    # Assuming ca.pem is in the same directory as app.py
+                    base_dir = os.path.dirname(os.path.abspath(__file__))
+                    ssl_ca_path = os.path.join(base_dir, ssl_ca)
+                    if os.path.exists(ssl_ca_path):
+                        config_copy['ssl_ca'] = ssl_ca_path
+                    else:
+                        print(f"⚠️ Warning: SSL CA file not found at {ssl_ca_path}. Using original path.")
+                        config_copy['ssl_ca'] = ssl_ca
+                else:
+                    config_copy['ssl_ca'] = ssl_ca
+                
                 config_copy['ssl_disabled'] = False
 
             self.connection = mysql.connector.connect(**config_copy)
@@ -85,7 +95,7 @@ class study_buddyDB:
                 print("✅ MySQL Connection established.")
                 return True
             return False
-        except Error as e:
+        except Exception as e:
             print(f"❌ Error connecting to MySQL: {e}")
             self.connection = None
             return False
@@ -289,6 +299,23 @@ class study_buddyDB:
             config_copy = self.config.copy()
             if not config_copy.get('passwd'):
                 del config_copy['passwd']
+
+            # Handle SSL if provided in environment (Common for cloud databases like Aiven/Azure)
+            ssl_ca = os.environ.get("DB_SSL_CA")
+            if ssl_ca:
+                # Check if it's a file path and resolve it
+                if not os.path.isabs(ssl_ca):
+                    # Assuming ca.pem is in the same directory as app.py
+                    base_dir = os.path.dirname(os.path.abspath(__file__))
+                    ssl_ca_path = os.path.join(base_dir, ssl_ca)
+                    if os.path.exists(ssl_ca_path):
+                        config_copy['ssl_ca'] = ssl_ca_path
+                    else:
+                        config_copy['ssl_ca'] = ssl_ca
+                else:
+                    config_copy['ssl_ca'] = ssl_ca
+                
+                config_copy['ssl_disabled'] = False
 
             db = mysql.connector.connect(**config_copy) 
             # Use dictionary=True for safe mapping
@@ -913,8 +940,7 @@ db_manager = study_buddyDB(DB_CONFIG)
 @app.route('/')
 def index():
     """Default route redirects to dashboard if logged in, otherwise login."""
-    global LOGGED_IN_USER_ID
-    if LOGGED_IN_USER_ID:
+    if 'user_id' in session:
         return redirect(url_for('dashboard')) # Redirect to the new dashboard
     # Show the public landing page for visitors who are not logged in
     return render_template('landingpage.html')
@@ -923,17 +949,15 @@ def index():
 @app.route('/landingpage')
 def landingpage():
     """Explicit landing page route."""
-    global LOGGED_IN_USER_ID
-    if LOGGED_IN_USER_ID:
+    if 'user_id' in session:
         return redirect(url_for('dashboard'))
     return render_template('landingpage.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Handles user login."""
-    global LOGGED_IN_USER_ID
     # Redirect already logged-in users away from the login page
-    if LOGGED_IN_USER_ID: 
+    if 'user_id' in session: 
         return redirect(url_for('dashboard')) # Redirect to the new dashboard
     
     if request.method == 'POST':
@@ -942,7 +966,7 @@ def login():
         
         user_id = db_manager.login_user(username, password)
         if user_id:
-            LOGGED_IN_USER_ID = user_id
+            session['user_id'] = user_id
             return redirect(url_for('dashboard')) # Redirect to the new dashboard
         return render_template('login.html', message="Login failed: Invalid credentials.")
             
@@ -952,8 +976,7 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """Handles user registration."""
-    global LOGGED_IN_USER_ID
-    if LOGGED_IN_USER_ID:
+    if 'user_id' in session:
         return redirect(url_for('dashboard')) # Redirect to the new dashboard
         
     if request.method == 'POST':
@@ -975,8 +998,7 @@ def register():
 @app.route('/logout')
 def logout():
     """Logs out the user by clearing the global user ID."""
-    global LOGGED_IN_USER_ID
-    LOGGED_IN_USER_ID = None
+    session.pop('user_id', None)
     return redirect(url_for('login'))
 
 
@@ -992,7 +1014,6 @@ def login_google():
 @app.route('/google/auth')
 def authorize():
     """Handles the callback from Google for COMBINED Login/Registration."""
-    global LOGGED_IN_USER_ID
     
     try:
         token = oauth.google.authorize_access_token()
@@ -1011,7 +1032,7 @@ def authorize():
     user_id = db_manager.login_or_register_google(google_id, email, name)
 
     if user_id:
-        LOGGED_IN_USER_ID = user_id
+        session['user_id'] = user_id
         return redirect(url_for('dashboard')) # Redirect to the new dashboard
     else:
         return redirect(url_for('register', message='Database error during Google sign-in/registration.', success=False))
@@ -1032,7 +1053,6 @@ def authorize_strict():
     Handles the callback from Google for STRICT Login Only. 
     It will only authenticate if the user exists.
     """
-    global LOGGED_IN_USER_ID
     
     try:
         token = oauth.google.authorize_access_token()
@@ -1050,7 +1070,7 @@ def authorize_strict():
     user_id = db_manager.login_google_strict(google_id, email)
 
     if user_id:
-        LOGGED_IN_USER_ID = user_id
+        session['user_id'] = user_id
         return redirect(url_for('dashboard')) # Login successful
     else:
         # Redirect to login page with an error message indicating the user needs to register
@@ -1061,15 +1081,15 @@ def authorize_strict():
 @app.route('/dashboard')
 def dashboard():
     """Renders the main dashboard with summary statistics and the username."""
-    global LOGGED_IN_USER_ID
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         return redirect(url_for('login'))
 
+    user_id = session['user_id']
     # Fetch summary data
-    summary_data = db_manager.fetch_dashboard_summary(LOGGED_IN_USER_ID)
+    summary_data = db_manager.fetch_dashboard_summary(user_id)
     
     # NEW: Fetch the username to display
-    username = db_manager.get_username_by_id(LOGGED_IN_USER_ID)
+    username = db_manager.get_username_by_id(user_id)
     
     return render_template(
         'dashboard.html',
@@ -1079,15 +1099,14 @@ def dashboard():
 
 @app.route('/subject')
 def subject():
-    global LOGGED_IN_USER_ID 
     global db_manager 
     
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         flash("You must be logged in to view subjects.", "error")
         return redirect(url_for('login'))
         
     # 🎯 ACTION: Calls the fixed, fresh-connection method
-    subjects_data = db_manager.fetch_all_subjects_and_topics(LOGGED_IN_USER_ID)
+    subjects_data = db_manager.fetch_all_subjects_and_topics(session['user_id'])
     
     return render_template('manage_subjects.html', subjects_data=subjects_data)
 
@@ -1095,10 +1114,10 @@ def subject():
 
 @app.route('/add_subject_topic', methods=['GET', 'POST'])
 def add_subject_topic():
-    global LOGGED_IN_USER_ID
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         return redirect(url_for('login'))
 
+    user_id = session['user_id']
     subject_message = ''
     topic_message = ''
     file_path = None
@@ -1107,7 +1126,7 @@ def add_subject_topic():
         if 'add_subject' in request.form:
             # --- ACTION 1: ADD SUBJECT LOGIC ---
             subject_name = request.form.get('subject_name')
-            _, subject_message = db_manager.add_subject(LOGGED_IN_USER_ID, subject_name)
+            _, subject_message = db_manager.add_subject(user_id, subject_name)
             
         elif 'add_topic' in request.form:
             # --- ACTION 2: ADD TOPIC LOGIC (WITH FILE SUPPORT) ---
@@ -1138,6 +1157,9 @@ def add_subject_topic():
                     # Construct the full path (this is the value stored in file_path)
                     file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
                     
+                    # Ensure the upload directory exists
+                    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
                     # Save the file
                     try:
                         file.save(file_path)
@@ -1175,7 +1197,7 @@ def add_subject_topic():
                 topic_message = "Error: Please enter valid numbers for Study Time and Difficulty."
                 
     # --- ACTION 3: RE-FETCH SUBJECTS ---
-    subjects = db_manager.get_subjects_by_user(LOGGED_IN_USER_ID)
+    subjects = db_manager.get_subjects_by_user(user_id)
     
     return render_template(
         'add_subject_topic.html', 
@@ -1189,14 +1211,13 @@ def add_subject_topic():
 @app.route('/mark_topic_complete_route/<int:topic_id>', methods=['POST'])
 def mark_topic_complete_route(topic_id): 
     
-    global LOGGED_IN_USER_ID
     global db_manager
     
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         flash("You must be logged in to complete a topic.", "error")
         return redirect(url_for('login'))
     
-    success = db_manager.mark_topic_complete_db(topic_id, LOGGED_IN_USER_ID)
+    success = db_manager.mark_topic_complete_db(topic_id, session['user_id'])
 
     if success:
         # 🎯 Action: The success message and redirect are correct.
@@ -1212,17 +1233,17 @@ def mark_topic_complete_route(topic_id):
 @app.route('/subjects')
 def view_subjects():
     """Fetches and displays all subjects and their topics for the logged-in user."""
-    global LOGGED_IN_USER_ID
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         return redirect(url_for('login')) 
     
+    user_id = session['user_id']
     # Fetch all structured subject and topic data
-    subjects_data = db_manager.fetch_all_subjects_and_topics(LOGGED_IN_USER_ID)
+    subjects_data = db_manager.fetch_all_subjects_and_topics(user_id)
 
     return render_template(
         'subjects.html',
         subjects_data=subjects_data,
-        user_id=LOGGED_IN_USER_ID 
+        user_id=user_id 
     )
 
 
@@ -1230,20 +1251,21 @@ def view_subjects():
 @app.route('/schedule')
 def schedule():
     """Handles viewing the generated study schedule and past schedules. Protected route."""
-    global LOGGED_IN_USER_ID, db_manager # 👈 CRITICAL: Declare DB_manager as global if it's not local
+    global db_manager # 👈 CRITICAL: Declare DB_manager as global if it's not local
     
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         return redirect(url_for('login')) 
     
+    user_id = session['user_id']
     # 1. FIX: The generate_schedule function expects (db_manager, user_id, time)
-    schedule, total_time = generate_schedule(db_manager, LOGGED_IN_USER_ID, daily_limit_hours=8.0)
+    schedule, total_time = generate_schedule(db_manager, user_id, daily_limit_hours=8.0)
 
     # Use python's datetime for the date display
     # 🚨 NOTE: Ensure `datetime` is imported at the top of your file: `import datetime`
     today = datetime.date.today().strftime("%A, %B %d, %Y")
     
     # 2. NEW: Fetch historical completed topics
-    historical_schedule = db_manager.fetch_historical_schedule(LOGGED_IN_USER_ID)
+    historical_schedule = db_manager.fetch_historical_schedule(user_id)
 
     return render_template(
         'schedule.html',
@@ -1260,14 +1282,14 @@ def get_study_reminder():
     Fetches the most difficult incomplete topic and returns a personalized message
     for use in a client-side pop-up.
     """
-    global LOGGED_IN_USER_ID
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         # Return a generic message if not logged in
         return "Please log in to receive personalized study reminders."
 
+    user_id = session['user_id']
     # Fetch the most difficult incomplete topic
-    most_difficult_topic = db_manager.fetch_most_difficult_incomplete_topic(LOGGED_IN_USER_ID)
-    username = db_manager.get_username_by_id(LOGGED_IN_USER_ID)
+    most_difficult_topic = db_manager.fetch_most_difficult_incomplete_topic(user_id)
+    username = db_manager.get_username_by_id(user_id)
 
     if most_difficult_topic:
         subject = most_difficult_topic['subject_name']
@@ -1298,8 +1320,7 @@ def fetch_scheduled_alarms():
     """
     Returns a list of incomplete topics with a scheduled_datetime in JSON format.
     """
-    global LOGGED_IN_USER_ID
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         return jsonify([])
 
     if not db_manager.check_connection():
@@ -1323,7 +1344,7 @@ def fetch_scheduled_alarms():
     
     cursor = db_manager.connection.cursor(dictionary=True)
     try:
-        cursor.execute(query, (LOGGED_IN_USER_ID,))
+        cursor.execute(query, (session['user_id'],))
         results = cursor.fetchall()
         
         formatted_results = []
@@ -1342,17 +1363,15 @@ def fetch_scheduled_alarms():
 
 @app.route('/snooze_alarm/<int:topic_id>', methods=['POST'])
 def snooze_alarm(topic_id):
-    global LOGGED_IN_USER_ID
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
         
-    success = db_manager.snooze_topic(topic_id, LOGGED_IN_USER_ID)
+    success = db_manager.snooze_topic(topic_id, session['user_id'])
     return jsonify({'success': success})
 
 @app.route('/real_time_clock')
 def real_time_clock():
-    global LOGGED_IN_USER_ID
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         return redirect(url_for('login'))
     return render_template('real_time_clock.html')
 
@@ -1362,12 +1381,12 @@ def uploaded_file(filename):
 
 @app.route('/charts')
 def charts():
-    global LOGGED_IN_USER_ID
-    if not LOGGED_IN_USER_ID:
+    if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    data = db_manager.fetch_chart_data(LOGGED_IN_USER_ID)
-    username = db_manager.get_username_by_id(LOGGED_IN_USER_ID)
+    user_id = session['user_id']
+    data = db_manager.fetch_chart_data(user_id)
+    username = db_manager.get_username_by_id(user_id)
     
     return render_template('charts.html', data=data, username=username)
 
