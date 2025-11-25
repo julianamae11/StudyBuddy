@@ -32,12 +32,9 @@ app.secret_key = '!SuperSecretKeyForSession!'
 # Simple placeholder for tracking logged-in user (USE FLASK SESSIONS IN PRODUCTION!)
 LOGGED_IN_USER_ID = None 
 
-UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+UPLOAD_FOLDER = os.path.join('/tmp', 'uploads')
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx'}
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-    print(f"Created upload directory: {UPLOAD_FOLDER}")
 
 # Initialize Authlib OAuth client
 oauth = OAuth(app)
