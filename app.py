@@ -12,22 +12,25 @@ from datetime import date
 
 
 # --- 1. Configuration ---
-# Your MySQL Database Configuration (Updated to use 'study_buddy3' schema)
+# Your MySQL Database Configuration
+# We use os.environ.get to read from Vercel's Environment Variables.
+# If they don't exist (like locally), we default to localhost values.
 DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "passwd": "", 
-    "database": "study_buddy3" # <-- NEW SCHEMA NAME
+    "host": os.environ.get("DB_HOST", "localhost"),
+    "user": os.environ.get("DB_USER", "root"),
+    "passwd": os.environ.get("DB_PASSWORD", ""), 
+    "database": os.environ.get("DB_NAME", "study_buddy3"),
+    "port": int(os.environ.get("DB_PORT", 3306))
 }
 
 # Google OAuth Configuration
-GOOGLE_CLIENT_ID = "1001684728871-dkd8nbuml9mk1p0etviclhpfbr54mgh5.apps.googleusercontent.com" 	
-GOOGLE_CLIENT_SECRET = "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"
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "1001684728871-dkd8nbuml9mk1p0etviclhpfbr54mgh5.apps.googleusercontent.com")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "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")
 
 # --- Global State and Initialization ---
 app = Flask(__name__)
 # IMPORTANT: Session secret key required for Flask sessions (used by OAuth)
-app.secret_key = '!SuperSecretKeyForSession!' 
+app.secret_key = os.environ.get("SECRET_KEY", '!SuperSecretKeyForSession!') 
 
 # Simple placeholder for tracking logged-in user (USE FLASK SESSIONS IN PRODUCTION!)
 LOGGED_IN_USER_ID = None 
@@ -71,6 +74,11 @@ class study_buddyDB:
             config_copy = self.config.copy()
             if not config_copy['passwd']:
                 del config_copy['passwd']
+
+            # Handle SSL if provided in environment (Common for cloud databases like Aiven/Azure)
+            if os.environ.get("DB_SSL_CA"):
+                config_copy['ssl_ca'] = os.environ.get("DB_SSL_CA")
+                config_copy['ssl_disabled'] = False
 
             self.connection = mysql.connector.connect(**config_copy)
             if self.connection.is_connected():

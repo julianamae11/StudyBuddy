@@ -1,15 +1,11 @@
-# api/index.py
-from flask import Flask
+import os
+import sys
 
-# Assuming your main app object is called 'app' in 'main.py'
-# If your app is called 'application' in 'app.py', adjust the import.
+# Add the parent directory to sys.path so we can import app.py
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from app import app
 
-# This is the Vercel handler function
-# It takes the request and returns the response from your Flask app
-@app.route("/")
-def home():
-    return "Hello from Vercel Serverless Flask!" 
-
-# NOTE: You might need a more complex setup using a wrapper library 
-# like 'flask-vercel' for production-ready deployment.
+# This is required for Vercel to find the Flask app instance
+# Vercel looks for a variable named 'app' or 'application' in the entry file.
+application = app
