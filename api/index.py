@@ -3,7 +3,7 @@ from flask import Flask
 
 # Assuming your main app object is called 'app' in 'main.py'
 # If your app is called 'application' in 'app.py', adjust the import.
-from main import app
+from app import app
 
 # This is the Vercel handler function
 # It takes the request and returns the response from your Flask app
