@@ -1,0 +1,113 @@
+/* Simple login page styles inspired by provided design */
+:root{
+  --bg-green:#8a9d6a;
+  --hero-green:#4a5f4a;
+  --card-bg:#f5ebe0;
+  --accent:#5a6f5a;
+  --muted-input:#e8dfd5;
+  --label:#333;
+  --card-width:420px;
+  --hero-width:900px;
+  --hero-height:200px;
+  --hero-top:50%;
+  --card-radius:28px;
+}
+
+/* Page base */
+html,body{height:100%;}
+body{margin:0;font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;background:var(--bg-green);display:flex;align-items:center;justify-content:center;position:relative}
+
+.register-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative}
+
+/* dark rounded hero rectangle centered behind the card */
+.hero-bg{position:absolute;left:50%;top:var(--hero-top);transform:translate(-50%, -50%);width:var(--hero-width);height:var(--hero-height);background:var(--hero-green);border-radius:20px;box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:0}
+
+/* signup card that overlays the hero */
+.container{position:relative;z-index:1;width:var(--card-width);max-width:92%;background:var(--card-bg);border-radius:var(--card-radius);padding:35px 40px;box-shadow:0 10px 30px rgba(0,0,0,0.15)}
+.container h2{margin:0 0 20px;font-size:36px;line-height:1;color:#3d3428;font-weight:700}
+
+.message.error{
+  background:#fdecea;
+  color:#a33;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid rgba(160,20,20,0.08);
+  margin-bottom:14px;
+  font-size:0.95rem;
+}
+
+.login-form{display:block}
+
+label{display:block;font-size:13px;color:var(--label);margin:12px 0 6px;font-weight:600}
+input[type="text"], input[type="password"], input[type="email"]{width:100%;padding:14px 18px;border-radius:25px;border:none;background:var(--muted-input);box-shadow:none;outline:none;font-size:14px;color:#333;box-sizing:border-box}
+
+.options{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:0.85rem;
+  color:#7a7a7a;
+  margin:8px 0 20px 0;
+}
+.options a{color:#7a7a7a;text-decoration:none}
+
+.btn{
+  display:block;
+  width:100%;
+  padding:14px 20px;
+  border-radius:25px;
+  border:0;
+  cursor:pointer;
+  font-size:1rem;
+  font-weight:600;
+  box-sizing:border-box;
+}
+.btn.primary{
+  background:#6b8c6b;
+  color:#fff;
+  transition:background .2s ease;
+}
+.btn.primary:hover{background:#4a5f4a}
+.divider{
+  text-align:center;
+  margin:16px 0 14px 0;
+  color:#999;
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.divider::before,
+.divider::after{
+  content:'';
+  flex:1;
+  height:1px;
+  background:rgba(0,0,0,0.08);
+}
+.divider span{background:transparent;padding:0 8px;position:relative;z-index:1;font-size:12px}
+.btn.secondary{
+  background:#6b8c6b;
+  border:0;
+  color:#fff;
+  padding:14px 20px;
+  border-radius:25px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  text-align:center;
+  text-decoration:none;
+  display:block;
+  margin-top:18px;
+  transition:background .2s ease;
+}
+.btn.secondary:hover{
+  background:#4a5f4a;
+}
+
+/* Responsive tweaks */
+@media (max-width:900px){
+  :root{--card-width:360px;--hero-width:640px;--hero-height:160px}
+}
+@media (max-width:640px){
+  .hero-bg{height:140px;width:92%}
+  .container{width:92%;padding:20px;border-radius:16px}
+  .container h2{font-size:28px}
+}

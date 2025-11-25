@@ -1,0 +1,62 @@
+:root{
+    --bg-green:#8a9d6a; /* page background */
+    --hero-green:#4a5f4a; /* dark rounded rectangle behind card */
+    --card-bg:#f5ebe0; /* cream card */
+    --accent:#5a6f5a; /* primary button */
+    --muted-input:#e8dfd5; /* input pill background */
+    --label:#333;
+    --card-width:420px;               /* card width */
+    --hero-width:900px;               /* hero rectangle width */
+    --hero-height:200px;              /* hero rectangle height */
+    --hero-top:50%;                   /* center vertically */
+    --card-radius:28px;               /* card corner radius */
+}
+
+/* Page base */
+html,body{height:100%;}
+body{margin:0;font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;background:var(--bg-green);display:flex;align-items:center;justify-content:center;position:relative}
+
+.register-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative}
+
+/* dark rounded hero rectangle centered behind the card */
+.hero-bg{position:absolute;left:50%;top:var(--hero-top);transform:translate(-50%, -50%);width:var(--hero-width);height:var(--hero-height);background:var(--hero-green);border-radius:20px;box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:0}
+
+/* signup card that overlays the hero */
+.container{position:relative;z-index:1;width:var(--card-width);max-width:92%;background:var(--card-bg);border-radius:var(--card-radius);padding:35px 40px;box-shadow:0 10px 30px rgba(0,0,0,0.15)}
+.container h2{margin:0 0 20px;font-size:36px;line-height:1;color:#3d3428;font-weight:700}
+
+label{display:block;font-size:13px;color:var(--label);margin:12px 0 6px;font-weight:600}
+input[type="text"], input[type="password"], input[type="email"]{width:100%;padding:14px 18px;border-radius:25px;border:none;background:var(--muted-input);box-shadow:none;outline:none;font-size:14px;color:#333;box-sizing:border-box}
+
+/* small pill inputs used for passwords */
+.password-row{display:flex;gap:12px;margin-top:0}
+.password-row .small-input{flex:1;padding:14px 18px;border-radius:25px;background:var(--muted-input);border:none;position:relative;box-sizing:border-box;font-size:14px;color:#333;outline:none}
+.password-row label{font-size:12px;color:#666;font-weight:normal}
+
+/* buttons */
+.btn{display:block;width:100%;padding:14px 20px;border-radius:25px;border:none;font-weight:600;cursor:pointer;margin-top:18px;font-size:1rem;box-sizing:border-box}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.secondary{background:var(--muted-input);color:#3d3428;border-radius:25px;padding:14px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.btn.google{background:#4a5f4a;color:#fff;display:block;transition:background .2s ease}
+.btn.google:hover{background:#ea4335}
+
+.divider{display:flex;align-items:center;gap:12px;margin:16px 0 14px 0;text-align:center}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(0,0,0,0.08)}
+.divider span{font-size:12px;color:#999}
+
+.login-link{margin-top:6px;text-align:center}
+.login-link a{color:var(--accent);text-decoration:none;font-weight:700}
+
+/* small adjustments */
+.container p{margin:6px 0}
+
+@media (max-width:900px){
+    :root{--card-width:360px;--hero-width:640px;--hero-height:160px;--card-translate:-72px}
+}
+@media (max-width:640px){
+    .hero-bg{height:140px;top:90px;width:92%}
+    .container{width:92%;padding:20px;transform:translateY(-28px);border-radius:16px}
+    .container h2{font-size:28px}
+    .password-row{flex-direction:column}
+    .password-row .small-input{background-position:right 14px center}
+}

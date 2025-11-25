@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>StudyBuddy Registration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    </head>
+<body>
+    <div class="register-wrap">
+        <div class="hero-bg" aria-hidden="true"></div>
+        <div class="container">
+            <h2>Sign Up</h2>
+
+            {% if message %}
+                <div class="message {% if success %}success{% else %}error{% endif %}">{{ message }}</div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('register') }}">
+                <label for="username"><b>Username</b></label>
+                <input type="text" placeholder="JuanDelaCruz02" name="username" required>
+
+                <label for="email"><b>Email Address</b></label>
+                <input type="email" placeholder="juan@google.com" name="email" required>
+                
+                <div class="password-row">
+                    <div style="flex:1">
+                        <label for="password"><b>Password</b></label>
+                        <input type="password" placeholder="**********" name="password" class="small-input" required>
+                    </div>
+                    <div style="flex:1">
+                        <label for="confirm_password"><b>Confirm Password</b></label>
+                        <input type="password" placeholder="**********" name="confirm_password" class="small-input" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn primary">Create Account</button>
+            </form>
+
+            <div class="divider"><span>Or</span></div>
+
+            <form method="GET" action="{{ url_for('login') }}">
+                <button type="submit" class="btn secondary">Log in</button>
+            </form>
+
+            <form method="GET" action="{{ url_for('login_google') }}">
+                <button type="submit" class="btn google">Sign in with Google</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- footer removed as requested -->
+</body>
+</html>

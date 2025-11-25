@@ -1,0 +1,97 @@
+/* Landing page specific styles (extracted from templates/landingpage.html) */
+:root{
+  --light-bg: #c8d9c5;
+  --dark-green: #3d5a3d;
+  --bg-green: #6b8c6b;
+  --cream: #fff;
+  /* reference-aligned sizing variables (easy to tweak) */
+  --header-height: 80px;   /* header height */
+  --bottom-height: 0px;   /* footer thickness unchanged */
+  --hero-left: 48px;        /* left inset for hero graphic */
+  --hero-width: 450px;      /* hero graphic width */
+  --logo-size: 50px;       /* logo box size */
+}
+
+/* Layout: keep body full viewport and use column flex; ensure main fills the space between header and bottom bar */
+body.landing-page{ background: var(--light-bg); padding:0; margin:0; display:flex; flex-direction:column; min-height:100vh; font-family: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial }
+
+header.site-header{
+  width:100%;
+  background:#3d5a3d;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:15px 40px;
+  box-sizing:border-box;
+  height:var(--header-height);
+  flex:0 0 var(--header-height);
+}
+
+.brand{display:flex;align-items:center;gap:15px}
+.brand .logo{
+  width:var(--logo-size);height:var(--logo-size);border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;padding:5px;box-shadow:0 4px 8px rgba(0,0,0,0.1);overflow:hidden
+}
+.brand .logo img{width:100%;height:100%;object-fit:contain;display:block}
+.brand h2{margin:0;font-size:20px;letter-spacing:2px;color:#fff;font-weight:700}
+.nav-actions{display:flex;gap:15px;align-items:center}
+.nav-actions a{white-space:nowrap}
+.nav-actions .btn.login{background:#fff;color:#3d5a3d;padding:10px 28px;border-radius:25px;box-shadow:0 2px 4px rgba(0,0,0,0.1);text-decoration:none;font-weight:600;font-size:16px}
+.nav-actions .btn.join{background:#6b8c6b;color:#fff;padding:10px 28px;border-radius:25px;box-shadow:0 2px 4px rgba(0,0,0,0.1);text-decoration:none;font-weight:600;font-size:16px}
+
+/* Make main exactly the remaining viewport space between header and bottom bar */
+main.landing-main{
+  min-height: calc(100vh - var(--header-height) - var(--bottom-height));
+  display:flex; align-items:center; justify-content:center;
+  padding:0 0 0 0; /* avoid extra bottom padding that shifts centering */
+  box-sizing:border-box;
+}
+
+.hero{
+  width:100%;
+  max-width:1200px;
+  margin:0 auto;
+  padding:60px 60px;
+  box-sizing:border-box;
+  position:relative;
+  min-height:400px;
+  display:flex;
+  align-items:center;
+}
+/* make graphic absolute so it overlaps the card and sits left */
+.hero-graphic{
+  position:absolute;
+  left:var(--hero-left);
+  top:50%;
+  width:var(--hero-width);
+  max-width:40vw;
+  height:auto;
+  z-index:1;
+  transform:translateY(-50%);
+}
+.hero-graphic img{width:100%;height:auto;display:block;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.15))}
+
+.hero-card{
+  margin-left: calc(var(--hero-left) + var(--hero-width) - 100px);
+  background:#5a7a5a;
+  color:#fff;
+  border-radius:20px;
+  padding:50px 60px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.15);
+  max-width:650px;
+  position:relative;
+  z-index:2;
+}
+.hero-card h1{font-size:48px;margin:0 0 20px;font-weight:700;color:#fff}
+.hero-card p{color:#fff;line-height:1.6;margin:0 0 24px;font-size:16px;text-align:left}
+.hero-card .learn{background:#6b8c6b;color:#fff;padding:12px 24px;border-radius:20px;display:inline-block;font-size:14px;text-decoration:none;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+
+/* bottom page bar */
+.page-bottom-bar{display:none}
+
+@media (max-width:900px){
+  .hero{flex-direction:column;align-items:center;padding:20px}
+  .hero-graphic{flex:0 0 320px;position:relative;left:0;transform:none;top:auto}
+  .hero-graphic img{width:320px}
+  .hero-card{width:92%;max-width:620px;margin-left:0;margin-top:18px}
+}

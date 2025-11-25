@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Study Content</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/subj_topic.css') }}">
+    <style>
+        /* Alarm UI Styles (Shared) */
+        .alarm-mini-panel {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 5px solid #4834d4;
+        }
+        .alarm-mini-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .alarm-mini-time {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+            font-family: monospace;
+        }
+        .alarm-mini-status {
+            font-size: 0.9em;
+            color: #777;
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 10px;
+        }
+        .alarm-mini-status.active {
+            background: #ffeaa7;
+            color: #d35400;
+        }
+        .alarm-mini-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-mini {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        .btn-mini-set { background: #4834d4; color: white; }
+        .btn-mini-clear { background: #eee; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='css/images/sb.png') }}" alt="Study Buddy Logo">
+                <span>STUDY BUDDY</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+
+        <div class="main-content">
+            <a href="{{ url_for('dashboard') }}" class="back-to-dashboard-btn">← BACK TO DASHBOARD</a>
+            
+            <!-- Manual Alarm Panel -->
+            <div class="alarm-mini-panel">
+                <div class="alarm-mini-info">
+                    <span>⏰ Personal Alarm:</span>
+                    <span id="alarm-display-time" class="alarm-mini-time">--:--</span>
+                    <span id="alarm-status-badge" class="alarm-mini-status">Off</span>
+                </div>
+                <div class="alarm-mini-controls">
+                    <button class="btn-mini btn-mini-set" onclick="setAlarm()">Set</button>
+                    <button class="btn-mini btn-mini-clear" onclick="clearAlarm()">Clear</button>
+                </div>
+                <input type="time" id="alarm-time-input" style="display:none; margin-left: 10px;">
+            </div>
+
+            <h1 class="page-title">➕ Add Study Content</h1>
+            
+            <p class="nav-links">
+                <a href="{{ url_for('schedule') }}">View All Schedule &rarr;</a>
+            </p>
+
+            <!-- SECTION 1: ADD SUBJECT -->
+            <div class="section-card">
+                <h2 class="section-title">1. Add Subject</h2>
+                {% if subject_message %}
+                    <div class="message {% if 'successfully' in subject_message %}success{% else %}error{% endif %}">
+                        {{ subject_message }}
+                    </div>
+                {% endif %}
+                <form method="POST" action="{{ url_for('add_subject_topic') }}" class="form-content">
+                    <label for="subject_name">Subject Name (e.g., Information Assurance)</label>
+                    <input type="text" placeholder="Subject Name" name="subject_name" required>
+                    <button type="submit" name="add_subject" class="submit-btn">Add Subject</button>
+                </form>
+            </div>
+
+            <!-- SECTION 2: ADD TOPIC (WITH FILE UPLOAD) -->
+            <div class="section-card">
+                <h2 class="section-title">2. Add Topic to a Subject</h2>
+                {% if topic_message %}
+                    <div class="message {% if 'successfully' in topic_message %}success{% else %}error{% endif %}">
+                        {{ topic_message }}
+                    </div>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('add_subject_topic') }}" enctype="multipart/form-data" class="form-content">
+                    
+                    <label for="subject_id">Select Subject</label>
+                    <select id="subject_id" name="subject_id" required>
+                        <option value="">-- Select a Subject --</option>
+                        {% for subject_id, subject_name in subjects %}
+                        <option value="{{ subject_id }}">{{ subject_name }}</option>
+                        {% endfor %}
+                    </select>
+                        
+                    <label for="topic_name">Topic Name</label>
+                    <input type="text" id="topic_name" name="topic_name" required>
+
+                    <label for="study_time_hrs">Estimated Study Time (Hours)</label>
+                    <input type="number" 
+                           id="study_time_hrs" 
+                           name="study_time_hrs" 
+                           placeholder="e.g., 2.5 (for 2 hours 30 mins)" 
+                           step="0.01" 
+                           min="0.1" 
+                           required>
+                           
+                    <label for="difficulty">Difficulty Rating (1-5)</label>
+                    <select id="difficulty" name="difficulty" required>
+                        <option value="">-- Select Difficulty --</option>
+                        <option value="1">1 - Very Easy</option>
+                        <option value="2">2 - Easy</option>
+                        <option value="3">3 - Moderate</option>
+                        <option value="4">4 - Hard</option>
+                        <option value="5">5 - Very Hard</option>
+                    </select>
+
+                    <label for="study_material">Study Material (Optional: PDF, DOCX)</label>
+                    <input type="file" 
+                           id="study_material" 
+                           name="study_material" 
+                           accept=".pdf,.doc,.docx"
+                    > 
+                    
+                    <div class="divider"></div>
+                    <h4 class="subsection-title">Optional: Set a Specific Study Alarm</h4>
+
+                    <label for="scheduled_date">Study Date</label>
+                    <input type="date" id="scheduled_date" name="scheduled_date"> 
+
+                    <label for="scheduled_time">Study Time</label>
+                    <input type="time" id="scheduled_time" name="scheduled_time">
+                    
+                    <button type="submit" name="add_topic" class="submit-btn">Add Topic</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alarm sound and JS logic -->
+    <!-- Removed old alarm logic to use global modal -->
+    
+    <!-- Include Global Alarm Modal -->
+    {% include 'includes/alarm_modal.html' %}
+
+    <script>
+        // Manual Alarm Logic (Synced)
+        function updateAddTopicAlarmUI() {
+            const storedTime = localStorage.getItem('dashboardAlarmTime');
+            const displayEl = document.getElementById('alarm-display-time');
+            const statusEl = document.getElementById('alarm-status-badge');
+            
+            if (storedTime) {
+                displayEl.textContent = storedTime;
+                statusEl.textContent = 'On';
+                statusEl.classList.add('active');
+            } else {
+                displayEl.textContent = '--:--';
+                statusEl.textContent = 'Off';
+                statusEl.classList.remove('active');
+            }
+        }
+
+        function setAlarm() {
+            const inputElement = document.getElementById('alarm-time-input');
+            inputElement.style.display = 'block';
+            inputElement.focus();
+            
+            inputElement.onchange = function() {
+                if (inputElement.value) {
+                    localStorage.setItem('dashboardAlarmTime', inputElement.value);
+                    updateAddTopicAlarmUI();
+                    inputElement.style.display = 'none';
+                }
+            };
+        }
+
+        function clearAlarm() {
+            localStorage.removeItem('dashboardAlarmTime');
+            updateAddTopicAlarmUI();
+            document.getElementById('alarm-time-input').style.display = 'none';
+        }
+
+        updateAddTopicAlarmUI();
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'dashboardAlarmTime') updateAddTopicAlarmUI();
+        });
+        setInterval(updateAddTopicAlarmUI, 2000);
+    </script>
+</body>
+</html>

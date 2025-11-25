@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Study Buddy — Landing</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+</head>
+<body class="landing-page">
+
+  <header class="site-header">
+    <div class="brand">
+      <div class="logo"><img src="{{ url_for('static', filename='css/images/sb.png') }}" alt="Study Buddy logo"></div>
+      <h2>STUDY BUDDY</h2>
+    </div>
+    <div class="nav-actions">
+      <a class="btn login" href="{{ url_for('login') }}">Log In</a>
+      <a class="btn join" href="{{ url_for('register') }}">Join Us</a>
+    </div>
+  </header>
+
+  <main class="landing-main">
+    <section class="hero">
+      <div class="hero-graphic" aria-hidden="true">
+        <!-- Use the project's Study Buddy logo for the large hero graphic -->
+        <img src="{{ url_for('static', filename='css/images/sb.png') }}" alt="Study Buddy graphic">
+      </div>
+
+      <div class="hero-card">
+        <h1>Study Buddy</h1>
+        <p>Study Buddy is an intelligent and student-centered web platform designed to support learners in managing their academic tasks, accessing study resources, and staying motivated throughout their educational journey.</p>
+        <a class="learn" href="#">LEARN MORE ▸</a>
+      </div>
+    </section>
+  </main>
+
+  <div class="page-bottom-bar" aria-hidden="true"></div>
+
+</body>
+</html>

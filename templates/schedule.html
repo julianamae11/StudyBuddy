@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Schedule</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/schedule.css') }}">
+    <style>
+        /* Alarm Section Styles */
+        .alarm-section-wrapper {
+            background-color: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-left: 5px solid #9BC59D;
+        }
+
+        .alarm-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .alarm-header h2 {
+            color: #2E7D32;
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .status-badge {
+            background-color: #e0e0e0;
+            color: #757575;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+
+        .alarm-controls-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .time-display-large {
+            font-size: 3em;
+            font-weight: 700;
+            color: #333;
+            font-family: 'Courier New', Courier, monospace;
+            background: #f5f5f5;
+            padding: 10px 30px;
+            border-radius: 10px;
+            letter-spacing: 2px;
+        }
+
+        .alarm-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn-alarm-action {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1em;
+        }
+
+        .btn-set {
+            background-color: #9BC59D;
+            color: white;
+        }
+
+        .btn-set:hover {
+            background-color: #6B8E6F;
+        }
+
+        .btn-clear {
+            background-color: #ffcdd2;
+            color: #c62828;
+        }
+
+        .btn-clear:hover {
+            background-color: #ef9a9a;
+        }
+
+        .alarm-input {
+            padding: 10px;
+            font-size: 1.2em;
+            border: 2px solid #9BC59D;
+            border-radius: 8px;
+            outline: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="schedule-container">
+        <h1>🗓️ Your Study Schedule</h1>
+        <h3>{{ today }}</h3>
+        
+        <!-- Alarm Clock Section -->
+        <div class="alarm-section-wrapper">
+            <div class="alarm-header">
+                <h2>⏰ Personal Study Alarm</h2>
+                <div id="alarm-status-badge" class="status-badge">No Alarm Set</div>
+            </div>
+            <div class="alarm-controls-container">
+                <div class="time-display-large" id="alarm-display-time">--:--</div>
+                <div class="alarm-actions">
+                    <button class="btn-alarm-action btn-set" onclick="setAlarm()">Set Alarm</button>
+                    <button class="btn-alarm-action btn-clear" onclick="clearAlarm()">Clear</button>
+                </div>
+                <input type="time" id="alarm-time-input" class="alarm-input" style="display:none;">
+            </div>
+        </div>
+
+        <div class="schedule-links">
+            <p>
+                <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+            </p>
+            <p>
+                <a href="{{ url_for('view_subjects') }}">View All Subjects &rarr;</a>
+            </p>
+            <p>
+                <a href="{{ url_for('add_subject_topic') }}">Go back to Add Topics &rarr;</a>
+            </p>
+        </div>
+        
+        {% if schedule %}
+            <div class="schedule-table-wrapper">
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Topic</th>
+                            <th>Time (Hrs)</th>
+                            <th>Difficulty</th>
+                            <th>Material</th>
+                            <th>Scheduled Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in schedule %}
+                        <tr>
+                            <td>{{ item.subject }}</td>
+                            <td>{{ item.topic }}</td>
+                            <td>{{ "%.2f" | format(item.time_needed) }}</td>
+                            <td>{{ item.difficulty }}</td>
+                            <td>
+                                {% if item.filename %}
+                                    <a href="{{ url_for('uploaded_file', filename=item.filename) }}" target="_blank" class="file-link">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="file-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        View File
+                                    </a>
+                                {% else %}
+                                    <span class="file-na">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.scheduled_datetime %}
+                                    {{ item.scheduled_datetime }}
+                                {% else %}
+                                    <span class="unscheduled">Unscheduled</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="total-time">
+                Total Time Scheduled: <span class="total-hours">{{ "%.2f" | format(total_time) }}</span> hours (Out of 8.00 hours max).
+            </p>
+        {% else %}
+            <div class="no-schedule">
+                <p>🎉 Great job! No topics currently scheduled.</p>
+                <p>Add some topics to get started!</p>
+            </div>
+        {% endif %}
+        <p class="logout-link">
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </p>
+    </div>
+    
+    <!-- Include Global Alarm Modal -->
+    {% include 'includes/alarm_modal.html' %}
+
+    <script>
+        // Manual Alarm Logic (Synced with Dashboard via localStorage)
+        
+        function updateScheduleAlarmUI() {
+            const storedTime = localStorage.getItem('dashboardAlarmTime');
+            const displayEl = document.getElementById('alarm-display-time');
+            const statusEl = document.getElementById('alarm-status-badge');
+            
+            if (storedTime) {
+                displayEl.textContent = storedTime;
+                statusEl.textContent = 'Alarm Set';
+                statusEl.classList.add('active');
+            } else {
+                displayEl.textContent = '--:--';
+                statusEl.textContent = 'No Alarm Set';
+                statusEl.classList.remove('active');
+            }
+        }
+
+        function setAlarm() {
+            const inputElement = document.getElementById('alarm-time-input');
+            inputElement.style.display = 'block';
+            inputElement.focus();
+            
+            inputElement.onchange = function() {
+                const timeValue = inputElement.value;
+                if (timeValue) {
+                    localStorage.setItem('dashboardAlarmTime', timeValue);
+                    updateScheduleAlarmUI();
+                    inputElement.style.display = 'none';
+                }
+            };
+        }
+
+        function clearAlarm() {
+            localStorage.removeItem('dashboardAlarmTime');
+            updateScheduleAlarmUI();
+            document.getElementById('alarm-time-input').style.display = 'none';
+        }
+
+        // Initialize UI
+        updateScheduleAlarmUI();
+
+        // Listen for changes from other tabs/pages
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'dashboardAlarmTime') {
+                updateScheduleAlarmUI();
+            }
+        });
+        
+        // Poll for changes (for same-browser updates that might not trigger storage event in some contexts)
+        setInterval(updateScheduleAlarmUI, 2000);
+    </script>
+</body>
+</html>

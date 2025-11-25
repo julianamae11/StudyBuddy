@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Subjects</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/subjects.css') }}">
+    <style>
+        /* Alarm UI Styles (Shared) */
+        .alarm-mini-panel {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 5px solid #ff6b6b;
+        }
+        .alarm-mini-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .alarm-mini-time {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+            font-family: monospace;
+        }
+        .alarm-mini-status {
+            font-size: 0.9em;
+            color: #777;
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 10px;
+        }
+        .alarm-mini-status.active {
+            background: #ffeaa7;
+            color: #d35400;
+        }
+        .alarm-mini-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-mini {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        .btn-mini-set { background: #ff6b6b; color: white; }
+        .btn-mini-clear { background: #eee; color: #555; }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <img src="{{ url_for('static', filename='css/images/sb.png') }}" alt="Study Buddy Logo" class="logo">
+            <span class="brand-text">STUDY BUDDY</span>
+        </div>
+        <button class="logout-btn" onclick="window.location.href='{{ url_for('logout') }}'">Logout</button>
+    </nav>
+
+    <div class="container">
+        <a href="{{ url_for('dashboard') }}" class="back-link">&larr; Back to Dashboard</a>
+        
+        <!-- Manual Alarm Panel -->
+        <div class="alarm-mini-panel">
+            <div class="alarm-mini-info">
+                <span>⏰ Personal Alarm:</span>
+                <span id="alarm-display-time" class="alarm-mini-time">--:--</span>
+                <span id="alarm-status-badge" class="alarm-mini-status">Off</span>
+            </div>
+            <div class="alarm-mini-controls">
+                <button class="btn-mini btn-mini-set" onclick="setAlarm()">Set</button>
+                <button class="btn-mini btn-mini-clear" onclick="clearAlarm()">Clear</button>
+            </div>
+            <input type="time" id="alarm-time-input" style="display:none; margin-left: 10px;">
+        </div>
+
+        <h1>📚 Your Subjects and Topics</h1>
+        
+        {% if not subjects_data %}
+            <p class="empty-subject">You haven't added any subjects yet. Go to <a href="{{ url_for('add_subject_topic') }}">Add Subject/Topic</a> to get started!</p>
+        {% else %}
+            {% for subject_name, subject_data in subjects_data.items() %}
+                <div class="subject-card">
+                    <div class="subject-header">{{ subject_name }}</div>
+                    
+                    {% if subject_data.topics %}
+                        <table class="topic-table">
+                            <thead>
+                                <tr>
+                                    <th>Topic Name</th>
+                                    <th>Time (Hrs)</th>
+                                    <th>Difficulty (1-5)</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for topic in subject_data.topics %}
+                                <tr>
+                                    <td>{{ topic.name }}</td>
+                                    <td>{{ "%.1f" | format(topic.time) }}</td>
+                                    <td>{{ topic.difficulty }}</td>
+                                    <td>
+                                        {% if topic.is_completed %}
+                                            <span class="status-completed">✅ Completed</span>
+                                        {% else %}
+                                            <span class="status-pending">⏳ Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not topic.is_completed %}
+                                            <form method="POST" action="{{ url_for('mark_topic_complete_route', topic_id=topic.topic_id) }}" style="display:inline;">
+                                                <button type="submit" class="complete-btn" onclick="return confirm('Mark \'{{ topic.name }}\' as COMPLETE?');">
+                                                    Mark Complete
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-subject">No topics added yet for this subject.</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Include Global Alarm Modal -->
+    {% include 'includes/alarm_modal.html' %}
+
+    <script>
+        // Manual Alarm Logic (Synced)
+        function updateSubjectAlarmUI() {
+            const storedTime = localStorage.getItem('dashboardAlarmTime');
+            const displayEl = document.getElementById('alarm-display-time');
+            const statusEl = document.getElementById('alarm-status-badge');
+            
+            if (storedTime) {
+                displayEl.textContent = storedTime;
+                statusEl.textContent = 'On';
+                statusEl.classList.add('active');
+            } else {
+                displayEl.textContent = '--:--';
+                statusEl.textContent = 'Off';
+                statusEl.classList.remove('active');
+            }
+        }
+
+        function setAlarm() {
+            const inputElement = document.getElementById('alarm-time-input');
+            inputElement.style.display = 'block';
+            inputElement.focus();
+            
+            inputElement.onchange = function() {
+                if (inputElement.value) {
+                    localStorage.setItem('dashboardAlarmTime', inputElement.value);
+                    updateSubjectAlarmUI();
+                    inputElement.style.display = 'none';
+                }
+            };
+        }
+
+        function clearAlarm() {
+            localStorage.removeItem('dashboardAlarmTime');
+            updateSubjectAlarmUI();
+            document.getElementById('alarm-time-input').style.display = 'none';
+        }
+
+        updateSubjectAlarmUI();
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'dashboardAlarmTime') updateSubjectAlarmUI();
+        });
+        setInterval(updateSubjectAlarmUI, 2000);
+    </script>
+</body>
+</html>

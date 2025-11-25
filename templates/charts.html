@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Difficulty Charts | StudyBuddy</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dasboard.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .chart-header {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .chart-header h2 {
+            color: #2c3e50;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin: 1rem 2rem;
+            padding: 0.5rem 1rem;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+
+        @media (min-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <img src="{{ url_for('static', filename='css/images/sb.png') }}" alt="Study Buddy Logo" class="logo">
+            <span class="brand-text">STUDY BUDDY</span>
+        </div>
+        <button class="logout-btn" onclick="window.location.href='{{ url_for('logout') }}'">Logout</button>
+    </nav>
+
+    <a href="{{ url_for('dashboard') }}" class="back-btn">← Back to Dashboard</a>
+    <button onclick="downloadReport()" class="back-btn" style="background-color: #28a745; border: none; cursor: pointer; margin-left: 10px;">Download PDF Report</button>
+
+    <div class="charts-container" id="charts-content">
+        <!-- Chart 1: Average Difficulty by Subject -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h2>Average Difficulty by Subject</h2>
+                <p>Which subjects are giving you the most trouble?</p>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="subjectChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 2: Topic Difficulty Distribution -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h2>Topic Difficulty Breakdown</h2>
+                <p>Individual topic difficulty ratings</p>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="topicChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Parse the data passed from Flask
+        const chartData = {{ data | tojson }};
+
+        // --- Chart 1: Subject Difficulty ---
+        const subjectLabels = chartData.subjects.map(item => item.subject_name);
+        const subjectValues = chartData.subjects.map(item => item.avg_difficulty);
+
+        const ctxSubject = document.getElementById('subjectChart').getContext('2d');
+        new Chart(ctxSubject, {
+            type: 'bar',
+            data: {
+                labels: subjectLabels,
+                datasets: [{
+                    label: 'Average Difficulty (1-5)',
+                    data: subjectValues,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        title: {
+                            display: true,
+                            text: 'Difficulty Rating'
+                        }
+                    }
+                }
+            }
+        });
+
+        // --- Chart 2: Topic Difficulty ---
+        // We'll take top 10 most difficult topics to avoid overcrowding
+        const topTopics = chartData.topics.slice(0, 10);
+        const topicLabels = topTopics.map(item => item.topic_name);
+        const topicValues = topTopics.map(item => item.difficulty_rating);
+        // Generate colors based on difficulty
+        const topicColors = topicValues.map(val => {
+            if (val >= 4) return 'rgba(255, 99, 132, 0.7)'; // Red for hard
+            if (val >= 3) return 'rgba(255, 206, 86, 0.7)'; // Yellow for medium
+            return 'rgba(75, 192, 192, 0.7)'; // Green for easy
+        });
+
+        const ctxTopic = document.getElementById('topicChart').getContext('2d');
+        new Chart(ctxTopic, {
+            type: 'bar', // Horizontal bar chart often looks better for names
+            indexAxis: 'y',
+            data: {
+                labels: topicLabels,
+                datasets: [{
+                    label: 'Difficulty Rating',
+                    data: topicValues,
+                    backgroundColor: topicColors,
+                    borderColor: topicColors.map(c => c.replace('0.7', '1')),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 5,
+                        title: {
+                            display: true,
+                            text: 'Difficulty Rating'
+                        }
+                    }
+                }
+            }
+        });
+
+        async function downloadReport() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            // Use a safe fallback if username isn't rendered correctly
+            const username = "{{ username }}" || "User"; 
+            const date = new Date().toLocaleDateString();
+
+            // 1. Header
+            doc.setFontSize(22);
+            doc.setTextColor(44, 62, 80); // Dark blue
+            doc.text("Study Buddy Performance Report", 105, 20, null, null, "center");
+            
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text(`User: ${username}`, 20, 35);
+            doc.text(`Date: ${date}`, 20, 42);
+
+            // 2. Recommendation Logic
+            let recommendation = "";
+            
+            // Find hardest subject
+            let maxDiff = 0;
+            let hardestSubject = "";
+            if (chartData.subjects && chartData.subjects.length > 0) {
+                chartData.subjects.forEach(s => {
+                    if (s.avg_difficulty > maxDiff) {
+                        maxDiff = s.avg_difficulty;
+                        hardestSubject = s.subject_name;
+                    }
+                });
+            }
+
+            // Find top 3 hardest topics
+            let hardestTopics = [];
+            if (chartData.topics && chartData.topics.length > 0) {
+                hardestTopics = [...chartData.topics]
+                    .sort((a, b) => b.difficulty_rating - a.difficulty_rating)
+                    .slice(0, 3)
+                    .map(t => `${t.topic_name} (${t.difficulty_rating}/5)`);
+            }
+
+            if (hardestSubject) {
+                recommendation += `Based on your study data, you should focus more on ${hardestSubject}, which has your highest average difficulty rating of ${maxDiff.toFixed(1)}/5.\n\n`;
+            } else {
+                recommendation += "Start adding subjects and topics to get personalized recommendations!\n\n";
+            }
+            
+            if (hardestTopics.length > 0) {
+                recommendation += `Specifically, we recommend reviewing these challenging topics:\n`;
+                hardestTopics.forEach(t => {
+                    recommendation += `• ${t}\n`;
+                });
+            }
+
+            doc.setFontSize(14);
+            doc.setTextColor(0);
+            doc.text("Recommendation:", 20, 55);
+            
+            doc.setFontSize(11);
+            doc.setTextColor(50);
+            const splitText = doc.splitTextToSize(recommendation, 170);
+            doc.text(splitText, 20, 65);
+
+            // 3. Capture Charts
+            let currentY = 65 + (splitText.length * 5) + 10;
+
+            const chartsContainer = document.getElementById('charts-content');
+            
+            try {
+                // Temporarily modify style to ensure white background for capture
+                const originalBg = chartsContainer.style.backgroundColor;
+                chartsContainer.style.backgroundColor = "#f4f6f9"; // Match dashboard bg or white
+
+                const canvas = await html2canvas(chartsContainer, {
+                    scale: 2, 
+                    useCORS: true,
+                    backgroundColor: "#f4f6f9" 
+                });
+                
+                // Restore style
+                chartsContainer.style.backgroundColor = originalBg;
+                
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 170; 
+                const pageHeight = doc.internal.pageSize.height;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                // Check if image fits on page
+                if (currentY + imgHeight > pageHeight - 20) {
+                    doc.addPage();
+                    currentY = 20;
+                }
+                
+                doc.addImage(imgData, 'PNG', 20, currentY, imgWidth, imgHeight);
+                doc.save(`StudyBuddy_Report_${username}.pdf`);
+                
+            } catch (err) {
+                console.error("Error generating PDF:", err);
+                alert("Failed to generate PDF. Please try again.");
+            }
+        }
+    </script>
+</body>
+</html>
